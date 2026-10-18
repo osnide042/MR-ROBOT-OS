@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+xset s off
+xset -dpms
+xset s noblank
+while true; do
+  chromium --kiosk --no-first-run --disable-session-crashed-bubble --disable-infobars --disable-features=TranslateUI --allow-file-access-from-files file:///opt/mrrobot/index.html
+  sleep 1
+done

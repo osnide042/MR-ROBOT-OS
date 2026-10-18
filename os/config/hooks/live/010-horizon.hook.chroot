@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+chmod +x /usr/local/bin/mrrobot-session /etc/xdg/openbox/autostart
+id mrrobot >/dev/null 2>&1 || useradd -m -s /bin/bash mrrobot
+usermod -aG audio,video,input,sudo mrrobot
+systemctl disable lightdm.service 2>/dev/null || true
+systemctl enable sddm.service
+chown -R mrrobot:mrrobot /home/mrrobot
+if command -v update-grub >/dev/null 2>&1; then update-grub || true; fi
