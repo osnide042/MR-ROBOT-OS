@@ -67,9 +67,10 @@ jobs:
           fi
 
           echo "Inspecting ISO boot files:"
-          xorriso -indev "$ISO" -find / -name 'isolinux.bin' -print
-          xorriso -indev "$ISO" -find / -name 'vesamenu.c32' -print
-          xorriso -indev "$ISO" -find / -name 'menu.c32' -print
+          xorriso -indev "$ISO" -find / -name 'isolinux.bin'
+          xorriso -indev "$ISO" -find / -name 'vesamenu.c32'
+          xorriso -indev "$ISO" -find / -name 'menu.c32'
+
 
           mkdir -p ../artifacts
           cp "$ISO" ../artifacts/MR-ROBOT-OS-amd64.iso
