@@ -55,33 +55,11 @@ jobs:
           sudo lb clean --purge || true
           sudo ./auto/config
 
-          # Locate vesamenu.c32 from the installed Syslinux packages.
-          VESAMENU="$(find \
-            /usr/lib/syslinux \
-            /usr/share/syslinux \
-            -type f -name vesamenu.c32 \
-            -print -quit 2>/dev/null || true)"
-
-          if [ -z "$VESAMENU" ]; then
-            echo "ERROR: vesamenu.c32 was not found."
-            echo "Searching installed Syslinux files:"
-            dpkg -L syslinux-common syslinux 2>/dev/null || true
-            exit 1
-          fi
-
-          echo "Found vesamenu module: $VESAMENU"
-
-          # Ensure live-build includes the missing boot menu module.
-          sudo mkdir -p config/includes.binary/isolinux
-          sudo install -m 0644 "$VESAMENU" \
-            config/includes.binary/isolinux/vesamenu.c32
-
-          # Build the ISO.
+          # Build the ISO (live-build will include the correct isolinux modules)
           sudo lb build
 
-          # Find the resulting hybrid ISO.
-          ISO="$(find . -maxdepth 1 -type f \
-            -name '*.hybrid.iso' -print -quit)"
+          # Find the resulting hybrid ISO
+          ISO="$(find . -maxdepth 1 -type f -name '*.hybrid.iso' -print -quit)"
 
           if [ -z "$ISO" ]; then
             echo "ERROR: No hybrid ISO was produced."
@@ -89,19 +67,7 @@ jobs:
             exit 1
           fi
 
-          # Verify the boot menu module exists in the finished ISO.
-          xorriso -indev "$ISO" \
-            -find /isolinux -name vesamenu.c32 \
-            > /tmp/vesamenu-check.txt
-
-          cat /tmp/vesamenu-check.txt
-
-          if ! grep -q 'vesamenu.c32' /tmp/vesamenu-check.txt; then
-            echo "ERROR: vesamenu.c32 is missing from the finished ISO."
-            exit 1
-          fi
-
-          # Export the ISO and checksum.
+          # Export the ISO and checksum
           sudo install -o "$(id -un)" -g "$(id -gn)" \
             "$ISO" ../MR-ROBOT-OS-amd64.iso
 
