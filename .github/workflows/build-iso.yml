@@ -1,4 +1,3 @@
-
 name: Build MR.ROBOT OS ISO
 
 on:
@@ -92,7 +91,7 @@ jobs:
 
           # Verify the boot menu module exists in the finished ISO.
           xorriso -indev "$ISO" \
-            -find /isolinux -name vesamenu.c32 -print \
+            -find /isolinux -name vesamenu.c32 \
             > /tmp/vesamenu-check.txt
 
           cat /tmp/vesamenu-check.txt
