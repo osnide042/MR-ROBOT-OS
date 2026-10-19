@@ -55,7 +55,43 @@ jobs:
           sudo lb clean --purge || true
           sudo ./auto/config
 
-          # Build the ISO (live-build will include the correct isolinux modules)
+          # ---- Fix missing Syslinux modules (the real cause of the boot error) ----
+          SYSLINUX_BIOS="/usr/lib/syslinux/modules/bios"
+
+          if [ ! -d "$SYSLINUX_BIOS" ]; then
+            echo "ERROR: $SYSLINUX_BIOS not found"
+            find /usr/lib/syslinux -type d 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "Copying Syslinux BIOS modules from $SYSLINUX_BIOS"
+
+          sudo mkdir -p config/includes.binary/isolinux
+
+          # Copy every module that isolinux / vesamenu needs
+          for mod in \
+            vesamenu.c32 \
+            libcom32.c32 \
+            libutil.c32 \
+            ldlinux.c32 \
+            libmenu.c32 \
+            libgpl.c32 \
+            menu.c32 \
+            hdt.c32
+          do
+            if [ -f "$SYSLINUX_BIOS/$mod" ]; then
+              sudo install -m 0644 "$SYSLINUX_BIOS/$mod" config/includes.binary/isolinux/
+              echo "  + $mod"
+            fi
+          done
+
+          # Also copy isolinux.bin if available
+          if [ -f /usr/lib/ISOLINUX/isolinux.bin ]; then
+            sudo install -m 0644 /usr/lib/ISOLINUX/isolinux.bin config/includes.binary/isolinux/
+            echo "  + isolinux.bin"
+          fi
+
+          # Build the ISO
           sudo lb build
 
           # Find the resulting hybrid ISO
@@ -65,6 +101,15 @@ jobs:
             echo "ERROR: No hybrid ISO was produced."
             find . -maxdepth 3 -type f -name '*.iso' -print
             exit 1
+          fi
+
+          # Quick verification that vesamenu is actually inside the ISO
+          xorriso -indev "$ISO" -find /isolinux -name vesamenu.c32 > /tmp/vesamenu-check.txt || true
+          cat /tmp/vesamenu-check.txt
+          if ! grep -q vesamenu.c32 /tmp/vesamenu-check.txt; then
+            echo "WARNING: vesamenu.c32 still not found inside ISO"
+          else
+            echo "OK: vesamenu.c32 is present in the ISO"
           fi
 
           # Export the ISO and checksum
