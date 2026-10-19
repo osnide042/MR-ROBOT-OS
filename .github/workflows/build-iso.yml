@@ -21,7 +21,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install ISO tools
+      - name: Install ISO build tools
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -43,45 +43,46 @@ jobs:
           hash -r
           lb --version
 
-      - name: Configure live system
+      - name: Build bootable ISO
         working-directory: os
+        shell: bash
         run: |
-          set -eux
+          set -euxo pipefail
+
           chmod +x auto/config
           chmod +x config/hooks/live/*.hook.chroot
 
           sudo lb clean --purge || true
           sudo ./auto/config
 
-      - name: Build bootable ISO
-        working-directory: os
-        run: |
-          set -eux
           sudo lb build
 
           ISO="$(find . -maxdepth 1 -type f -name '*.hybrid.iso' -print -quit)"
+
           if [ -z "$ISO" ]; then
-            echo "ERROR: No hybrid ISO was generated."
-            find . -maxdepth 2 -type f -name '*.iso' -print
+            echo "ERROR: No hybrid ISO was produced."
+            find . -maxdepth 3 -type f -name '*.iso' -print
             exit 1
           fi
 
-          echo "Inspecting ISO boot files:"
-          xorriso -indev "$ISO" -find / -name 'isolinux.bin'
-          xorriso -indev "$ISO" -find / -name 'vesamenu.c32'
-          xorriso -indev "$ISO" -find / -name 'menu.c32'
+          sudo install -o "$USER" -g "$(id -gn)" \
+            "$ISO" ../MR-ROBOT-OS-amd64.iso
 
+          cd ..
 
-          mkdir -p ../artifacts
-          cp "$ISO" ../artifacts/MR-ROBOT-OS-amd64.iso
-          sha256sum ../artifacts/MR-ROBOT-OS-amd64.iso \
-            > ../artifacts/MR-ROBOT-OS-amd64.iso.sha256
+          test -s MR-ROBOT-OS-amd64.iso
 
+          sha256sum MR-ROBOT-OS-amd64.iso \
+            > MR-ROBOT-OS-amd64.iso.sha256
+
+          ls -lh MR-ROBOT-OS-amd64.iso*
+          
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: MR-ROBOT-OS-amd64
           path: |
-            os/artifacts/MR-ROBOT-OS-amd64.iso
-            os/artifacts/MR-ROBOT-OS-amd64.iso.sha256
+            MR-ROBOT-OS-amd64.iso
+            MR-ROBOT-OS-amd64.iso.sha256
+          if-no-files-found: error
           retention-days: 14
